@@ -1,0 +1,66 @@
+local Players = game:GetService("Players")
+
+local Objects = game:GetService("ReplicatedStorage"):WaitForChild("Objects")
+local Main_Folder = game:GetService("Workspace"):FindFirstChild("Object_Storage")
+local DataStore2 = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared Instances"):WaitForChild("Modules"):WaitForChild("DataStore_Module"))
+local HttpService = game:GetService("HttpService")
+
+
+
+Players.PlayerAdded:Connect(function(Player)
+local SavedInventoryData = DataStore2("Inventory", Player)
+local Inventory = HttpService:JSONDecode(SavedInventoryData:Get({}))
+  
+     local InventoryInfo = Instance.new("Folder", Player)
+     InventoryInfo.Name = "Inventory"
+     
+  
+
+if Inventory then
+
+for Index, Value in pairs(Inventory) do 
+	local Object  = Value.Object
+	local Quantity = Value.Quantity
+	
+	local NewFolder = Instance.new("Folder", Player:FindFirstChild("Inventory"))
+	NewFolder.Name = Object
+	local NewObjectValue = Instance.new("StringValue", NewFolder)
+	NewObjectValue.Value = Object
+	local NewQuantityValue = Instance.new("NumberValue", NewFolder)
+	NewQuantityValue.Value = Quantity
+	
+end
+end
+
+end)
+
+Players.PlayerRemoving:Connect(function(Player)
+
+local SavedInventoryData = DataStore2("Inventory", Player)
+
+ 
+  local InventoryData = {}
+
+  for Index, Value in pairs(Player:WaitForChild("Inventory"):GetChildren()) do
+	if Value.ClassName == "Folder" then 
+	for I, V in pairs(Value:GetChildren()) do
+		if V.ClassName == "StringValue" then  
+		local function GetQuantity() 
+			for L, C in pairs (Value:GetChildren()) do
+				
+				if C.ClassName == "NumberValue" then
+				 return C.Value 
+			    end
+		    end
+		end
+		
+		table.insert(InventoryData, {Object = V.Value, Quantity = GetQuantity()})
+		end
+	end
+
+	 end
+	end 
+  SavedInventoryData:Set(HttpService:JSONEncode(InventoryData))
+
+
+end)
