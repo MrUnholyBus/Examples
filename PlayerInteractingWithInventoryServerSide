@@ -1,0 +1,96 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local InventoryEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("InventoryCheck_Event")
+local EquipEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Equip_Event")
+local UnEquipEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("UnEquip_Event")
+local DropEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Drop_Event")
+local debounce = false
+
+InventoryEvent.OnServerInvoke = function(Player, Block, Quantity)
+  for _,Object in pairs(Player:FindFirstChild("Inventory"):GetChildren()) do
+	for Index, Value in pairs(Object:GetChildren()) do
+		if Value.ClassName == "StringValue"  and Value.Value == Block then
+			for L, C in pairs (Object:GetChildren()) do
+				if C.ClassName == "NumberValue" and C.Value == Quantity then 
+				 return true
+				end
+			end
+	    end
+    end
+ end
+end
+
+
+EquipEvent.OnServerEvent:Connect(function(Player, Tool)
+	if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+		if #Player.Character.Weapon:GetChildren() == 1 then
+			local tempVal = Player.Character.Weapon:GetChildren()[1]:FindFirstChild("offense").Value
+			Player.stats.offense.Value = Player.stats.offense.Value - tempVal
+			
+		end
+				local c = game.ReplicatedStorage.Objects[tostring(Tool)]:Clone();
+				Player.Character.Weapon:ClearAllChildren()
+				
+				c.Parent = Player.Character.Weapon
+				
+				local bonus = c.offense.Value
+				
+				Player.PlayerGui.Gui.Equipment.Weapon.Image = "rbxgameasset://Images/Transparent"
+				Player.PlayerGui.Gui.Equipment.Weapon.Image = "rbxgameasset://Images/" .. tostring(Tool)
+				
+				Player.stats.weaponName.Value = tostring(Tool)
+				Player.stats.weaponBonus.Value = bonus
+				
+				
+    			local weld = Instance.new("Weld", c)
+   				weld.Part0 = c.Handle
+   				weld.Part1 = Player.Character.RightHand
+   				weld.C0 = CFrame.new(0, 0, 0) *CFrame.new(0, 0, 0)
+				
+				Player.stats.offense.Value = Player.stats.offense.Value + bonus
+	end
+end)
+
+UnEquipEvent.OnServerEvent:Connect(function(Player, Tool)
+	if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+		--Player.Character:FindFirstChild("Humanoid"):UnequipTools()
+		
+			Player.Backpack:ClearAllChildren()
+			Player.PlayerGui.Gui.Equipment.Weapon.Image = "rbxgameasset://Images/Transparent"
+			if #Player.Character.Weapon:GetChildren() > 0 then
+				--Player.Character.Weapon:FindFirstChild(tostring(Tool))
+				local tempVal = Player.Character.Weapon:GetChildren()[1]:FindFirstChild("offense").Value
+				Player.stats.offense.Value = Player.stats.offense.Value - tempVal
+				Player.Character.Weapon:ClearAllChildren()
+				
+				
+				Player.stats.weaponName.Value = ""
+				Player.stats.weaponBonus.Value = Player.stats.weaponBonus.Value - tempVal
+			--local pl = game:GetService("Players"):GetPlayerFromCharacter(Player.Character)
+			end
+		end
+end)
+
+
+
+DropEvent.OnServerEvent:Connect(function(Player, Tools)
+	if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+			print(Tools)
+			Player.Inventory:WaitForChild(tostring(Tools)):Remove()
+			if (Tools == "Sword" or "Tool") then
+
+				Player.PlayerGui.Gui.Equipment.Weapon.Image = "rbxgameasset://Images/Transparent"
+				
+				if (#Player.Character.Weapon:GetChildren() > 0) then
+					local tempVal = Player.Character.Weapon:GetChildren()[1]:FindFirstChild("offense").Value
+					Player.stats.offense.Value = Player.stats.offense.Value - tempVal
+					Player.stats.weaponName.Value = ""
+					Player.stats.weaponBonus.Value = Player.stats.weaponBonus.value - tempVal
+					Player.Character.Weapon:ClearAllChildren()
+				end
+		
+		end
+		
+		
+		
+	end
+end)
