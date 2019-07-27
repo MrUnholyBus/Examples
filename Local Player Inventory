@@ -1,0 +1,237 @@
+local Player = game:GetService("Players").LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Gui = PlayerGui:WaitForChild("Gui")
+local GuiObjects = ReplicatedStorage.GuiObjects
+
+local SelectionFrame = GuiObjects.SelectionFrame
+local InventoryFrame = Gui.Frame
+local InventorySlots = InventoryFrame.Slots
+local debounce = false
+
+
+local InventoryEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("InventoryCheck_Event")
+local EquipEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Equip_Event")
+local UnEquipEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("UnEquip_Event")
+local DropEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Drop_Event")
+
+local sharedInstances = ReplicatedStorage:WaitForChild("Shared Instances")
+local Debounce = true
+
+
+
+  
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+	
+	if input.UserInputType == Enum.UserInputType.Keyboard then
+		if Debounce then
+		Debounce = false
+		local key = input.KeyCode
+		if key == Enum.KeyCode.E then
+			InventoryFrame.Visible = not InventoryFrame.Visible
+			local EquipmentFrame = Player.PlayerGui.Gui.Equipment
+			EquipmentFrame.Visible = not EquipmentFrame.Visible
+			local Frame = Gui:FindFirstChild(SelectionFrame.Name) 
+			if Frame then
+				Frame:Destroy()
+			end
+			
+            CreateSlots()
+		end
+		Debounce = true
+		end
+		
+
+		
+	elseif input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
+			local Frame = Gui:FindFirstChild(SelectionFrame.Name) 
+			if Frame then
+				Frame:Destroy()
+			end
+
+	end
+end)
+
+
+  
+
+
+local function cleanUp() --//Cleaning process 
+
+	for _, GUIObj in pairs(InventorySlots:GetChildren()) do 
+		if GUIObj.ClassName == "Frame" or GUIObj.ClassName == "ScrollFrame" then
+	       GUIObj:Destroy()
+		end
+	end
+	
+end
+
+function createInventorySlot(Item, quantity)
+	
+	local ItemToString =  tostring(Item)
+	
+	if InventoryEvent:InvokeServer(Item, quantity.Value) then
+	local Slot = GuiObjects.InventorySlot:Clone()
+	local Icon = Instance.new("ImageLabel", Slot)
+
+	if (ItemToString == "Apple") then
+		Icon.Image = "rbxgameasset://Images/Apple"
+	end
+	
+	if (ItemToString == "Sword") then
+		Icon.Image = "rbxgameasset://Images/TestSword"
+	end
+	
+	if (ItemToString == "Tool") then
+		Icon.Image = "rbxgameasset://Images/Tool"
+	end
+	
+	
+
+	Icon.ZIndex = 4
+	Icon.Size = UDim2.new(1, 0, 1, 0)
+	local Item = ReplicatedStorage:WaitForChild("Objects"):FindFirstChild(Item)
+	if quantity.Value > 0 then
+	  local QuantityText = Slot:WaitForChild("Quantity")
+	  QuantityText.Text = tostring(quantity.Value)
+		
+	quantity.Changed:Connect(function(newval)
+	    QuantityText.Text = tostring(newval)
+		if newval <= 0 then
+		  Slot:Destroy()
+		end
+	end)
+	
+	
+	end
+	
+	if Item then
+	   -- Slot.Button.MouseButton2Down:Connect(function()
+		
+		-- 
+		--end)
+		Slot.Button.InputBegan:Connect(function(input, gameProcessed)
+		   if input.UserInputType == Enum.UserInputType.MouseButton2 then
+	        if not Gui:FindFirstChild(SelectionFrame.Name) then
+			local Frame = SelectionFrame:Clone()
+			
+			Frame.Parent = Gui 
+			Frame.Visible = true
+	        else
+		    local Frame = Gui:FindFirstChild(SelectionFrame.Name) 
+		    Frame.Visible = true
+	        end
+	       
+		
+	       if (ItemToString == "Tool" or ItemToString == "Sword") then--and Gui:FindFirstChild(SelectionFrame.Name)) 		
+		   local Frame = Gui:FindFirstChild(SelectionFrame.Name)
+		   Frame:FindFirstChild("Equip").Visible = true
+		   Frame:FindFirstChild("UnEquip").Visible = true
+		   Frame:FindFirstChild("Drop").Visible = true
+		
+		      Frame:FindFirstChild("Equip").MouseButton1Click:Connect(function()
+					if (debounce == false) then
+						debounce = true
+				     	EquipEvent:FireServer(Item)
+						Frame.Visible = false
+						wait(0.2)
+						debounce = false
+					end
+		      end)
+		      Frame:FindFirstChild("UnEquip").MouseButton1Click:Connect(function()
+					if (debounce == false) then
+						debounce = true
+				    	UnEquipEvent:FireServer(Item)
+						Frame.Visible = false
+						wait(0.2)
+						debounce = false
+					end
+		      end)
+		
+			  Frame:FindFirstChild("Drop").MouseButton1Click:Connect(function()
+				
+					if (debounce == false) then
+						debounce = true
+				     	DropEvent:FireServer(Item)
+						Frame.Visible = false
+						wait(0.2)
+						debounce = false
+					end
+			  end)
+		
+		else
+				local Frame = Gui:FindFirstChild(SelectionFrame.Name)
+				
+					if (debounce == false) then
+							debounce = true
+							Frame:FindFirstChild("Drop").Visible = true
+							
+						Frame:FindFirstChild("Drop").MouseButton1Click:Connect(function()
+						    DropEvent:FireServer(Item)
+							Frame.Visible = false
+						end)
+						wait(0.2)
+						debounce = false
+			  end
+		end
+
+	       Gui:FindFirstChild(SelectionFrame.Name).Position = UDim2.new(0, input.Position.X, 0, input.Position.Y)
+		   else 
+	       end
+		end)
+
+    end
+	
+	Slot.Parent = InventorySlots
+ end
+	
+end
+
+ 
+function CreateSlots()
+
+ cleanUp()
+
+ for _,Object in pairs(Player:FindFirstChild("Inventory"):GetChildren()) do
+	for Index, Value in pairs(Object:GetChildren()) do
+		if Value.ClassName == "StringValue" then
+		local function GetQuantity()
+			for L, C in pairs (Object:GetChildren()) do
+				if C.ClassName == "NumberValue" then
+				 return C
+				end
+				
+			end
+		end
+		createInventorySlot(Value.Value, GetQuantity())
+	    end
+	end
+ end
+end
+
+ Player:WaitForChild("Inventory").ChildAdded:Connect(function(Folder)
+	wait()
+	if Folder.ClassName == "Folder" and InventoryFrame.Visible and Debounce then
+	   Debounce = false
+	   CreateSlots()
+	   Debounce = true
+	end
+ end)
+ 
+  Player:WaitForChild("Inventory").ChildRemoved:Connect(function(Folder)
+	wait()
+	if Folder.ClassName == "Folder" and InventoryFrame.Visible and Debounce then
+	   Debounce = false
+	   CreateSlots()
+	   Debounce = true
+	end
+ end)
+
+
+LocalPlayer.Character:WaitForChild("Humanoid").Died:Connect(cleanUp)
+LocalPlayer.CharacterAdded:Connect(CreateSlots)
